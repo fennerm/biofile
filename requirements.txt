@@ -1,0 +1,4 @@
+pypandoc==1.4
+setuptools==28.8.0
+typing==3.6.2
+pytest==3.2.2

@@ -1,0 +1,14 @@
+*.swp
+*.pyc
+/json/
+/not_mine/
+*.egg-info
+/test/*.part
+/test/testdat/
+/test/sandbox/
+*.bt2
+*.cache
+*.python-version
+pipeline.log
+.mypy_cache
+Makefile
