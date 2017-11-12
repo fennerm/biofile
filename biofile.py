@@ -129,7 +129,8 @@ class Biofile():
 
         Returns
         -------
-        True if successful
+        bool
+            True if successful
         """
         self._check_file_not_empty()
         self.validated = True
@@ -209,52 +210,132 @@ class Fastq(Biofile):
     extensions = ['.fastq', '.fq', '.fastq.gz', '.fq.gz']
 
 
+class FwdFastq(Fastq):
+    """Biofile class for holding forward pairs in paired .fastqs"""
+    pass
+
+
+class RevFastq(Fastq):
+    """Biofile class for holding reverse pairs in paired .fastqs"""
+    pass
+
+
+class UnpairedFastq(Fastq):
+    """Biofile class for holding unpaired .fastq files"""
+    pass
+
+
 class Fasta(Biofile):
     """Biofile for class holding .fasta files."""
-
     input_type = 'fasta'
     extensions = ['.fasta', '.fa', 'mfa', 'fna']
 
 
-# class Sam(Biofile):
-#     """Biofile class for holding .sam files"""
-#
-#     input_type = 'sam'
-#     extensions = ['.sam']
-#
-#
-# class Bam(Biofile):
-#     """Biofile class for holding .bam files"""
-#
-#     input_type = 'bam'
-#     extensions = ['.bam']
-#
-#     def __init__(self, *args, **kwargs) -> None:
-#         """Initialization """
-#         super().__init__(*args, **kwargs)
-#         self._extensions = ['bam']
-#
-#
-# class SamtoolsFAIndex(Biofile):
-#     """Biofile class for holding samtools .fai files"""
-#     input_type = 'fai'
-#     accepted_extension = ['.fai']
+class SamtoolsFAIndex(Biofile):
+    """Biofile class for holding samtools .fai files"""
+    input_type = 'fai'
+    extensions = ['.fai']
 
 
-# -----------------------------------------------------------------------------
-# Functions
-# -----------------------------------------------------------------------------
+class Sam(Biofile):
+    """Biofile class for holding .sam files"""
+
+    input_type = 'sam'
+    extensions = ['.sam']
 
 
-def type_to_class(typ: str) -> Type[Biofile]:
-    """Convert a type variable to its corresponding Biofile object"""
-    if typ:
-        try:
-            cls = eval(typ.capitalize())
-        except NameError:
-            cls = Biofile
-        return cls
-    return None
+class Bam(Biofile):
+    """Biofile class for holding .bam files"""
+
+    input_type = 'bam'
+    extensions = ['.bam']
+
+
+class Gzipped(Biofile):
+    input_type = 'gz'
+    extensions = ['.gz']
+
+    def __init__(self, *args, **kwargs):
+        """Initialize"""
+        super().__init__(*args, **kwargs, gzipped=True)
+
+    def _check_gzip(self)-> bool:
+        pass
+
+    def _check_extension(self) -> bool:
+        """Check that the file extension matches the accepted extensions
+
+        The superclass should not have accepted extensions, but subclasses will
+        use this method for extension validation.
+        """
+        if '.gz' not in self.extension.lower():
+            raise FileExtensionError(self._path)
+        return True
+
+
+class Unzipped(Biofile):
+    input_type = 'ANY'
+    extensions = ['ANY']
+
+    def __init__(self, *args, **kwargs):
+        """Initialize"""
+        super().__init__(*args, **kwargs, gzipped=False)
+
+
+# Don't know how to deal with references which aren't files
+# class CentrifugeDB(Biofile):
+#     """A centrifuge database file"""
+#     input_type = 'centrifugedb'
+#     extensions = ['.cf']
+
+
+class TSV(Biofile):
+    """A .tsv file"""
+    input_type = 'tsv'
+    extensions = ['.tsv']
+
+
+class CentrifugeOutput(TSV):
+    """A centrifuge output file"""
+    pass
+
+
+class Hits(TSV):
+    """A hits file compatible with blobtools"""
+    pass
+
+
+class Txt(Biofile):
+    """A .txt file"""
+    input_type = 'txt'
+    extensions = ['.txt']
+
+
+class Html(Biofile):
+    """A html file"""
+    input_type = 'html'
+    extensions = ['.html']
+
+
+class FastQCReport(Html):
+    """A FastQC report"""
+    pass
+
+
+class Zip(Biofile):
+    """A zip file"""
+    input_type = 'zip'
+    extensions = ['.zip']
+
+
+class Hist(Txt):
+    """A histogram text file"""
+    pass
+
+
+class Adapters(Fasta):
+    """A fasta file with adapter sequences"""
+    pass
 
 # -----------------------------------------------------------------------------
 # BiofileGroup Objects
@@ -291,17 +372,18 @@ class BiofileGroup(Sized):
     def __init__(
             self,
             paths: Sequence[Path],
-            filetype: str,
+            filetype: Type[Biofile],
             *args,
             **kwargs,
             ) -> None:
 
         # Store paramaters
         self._paths = paths
+        # TODO
+        #self.names = names
         self.filetype = filetype
         self.validated = False
 
-        self.cls = type_to_class(self.filetype)
         self._biofiles = self._initialize_biofiles(*args, **kwargs)
         self._prevalidate()
 
@@ -353,7 +435,7 @@ class BiofileGroup(Sized):
 
     def _initialize_biofiles(self, *args, **kwargs) -> List[Biofile]:
         """Initalize a set of biofiles for the input file list"""
-        return [self.cls(p, *args, **kwargs) for p in self._paths]
+        return [self.filetype(p, *args, **kwargs) for p in self._paths]
 
     def __len__(self) -> int:
         """Length of file list"""

@@ -24,13 +24,13 @@ InstanceMap = Callable[[Type[Biofile], str], Biofile]
 
 @fixture(scope='module')
 def instance_of(
-        example_file: Callable[[str, str], Path]
+        example_file: Callable[[Type[Biofile], str], Path]
         )-> InstanceMap:
     def _make_test_instance(
             cls: Type[Biofile],
             size: str)-> Biofile:
 
-        input_example = example_file(cls.input_type, size)
+        input_example = example_file(cls, size)
 
         return cls(input_example)
     return _make_test_instance
@@ -49,13 +49,6 @@ def biofiles(request):
 def inst_biofiles(instance_of, biofiles):
     """Return instances of all Biofile types"""
     return instance_of(biofiles, 'tiny')
-
-
-def test_type_to_class():
-    assert type_to_class('fastq') == Fastq
-    assert type_to_class('fasta') == Fasta
-    assert type_to_class('foo') == Biofile
-    assert not type_to_class(None)
 
 
 class TestBiofile(object):
@@ -112,29 +105,29 @@ class TestBiofile(object):
 
 @fixture()
 def diff_prefix(dat):
-    return BiofileGroup(dat['tiny']['diff_prefix'], 'fasta')
+    return BiofileGroup(dat['tiny']['diff_prefix'], Fasta)
 
 
 @fixture()
 def fwd_reads(dat):
-    return BiofileGroup(dat['tiny']['fwd_reads'], 'fastq')
+    return BiofileGroup(dat['tiny']['fwd_reads'], FwdFastq)
 
 
 @fixture()
 def rev_reads(dat):
-    return BiofileGroup(dat['tiny']['rev_reads'], 'fastq')
+    return BiofileGroup(dat['tiny']['rev_reads'], RevFastq)
 
 
 @fixture()
 def assemblies(dat):
-    return BiofileGroup(dat['tiny']['assemblies'], 'fasta')
+    return BiofileGroup(dat['tiny']['assemblies'], Fasta)
 
 
 class TestBiofileGroup(object):
 
     def test_empty_input_raises_value_err(self):
         with raises(ValueError):
-            BiofileGroup([], filetype='fasta')
+            BiofileGroup([], filetype=Fasta)
 
     def test_access_returns_path(self, dat, assemblies):
         fasta_paths = dat['tiny']['assemblies']
@@ -149,7 +142,7 @@ class TestBiofileGroup(object):
 
     def test_single_path_input_raises_type_err(self):
         with raises(TypeError):
-            BiofileGroup(Path('foo.fa'), filetype='fasta')
+            BiofileGroup(Path('foo.fa'), filetype=Fasta)
 
     def test_biofilegroups_can_be_zipped(self, assemblies, fwd_reads):
         max_index = max(len(assemblies), len(fwd_reads))
@@ -159,7 +152,7 @@ class TestBiofileGroup(object):
 
     def test_length_nonexist_doesnt_raise_error(self):
         paths = as_paths(['foo.fa', 'bar.fa'])
-        len(BiofileGroup(paths, filetype='fasta'))
+        len(BiofileGroup(paths, filetype=Fasta))
 
     def test_equality_operator(self, assemblies, diff_prefix):
         assert assemblies != diff_prefix
@@ -167,13 +160,13 @@ class TestBiofileGroup(object):
     def test_different_extensions_raises_value_err(self):
         with raises(FileExtensionsNotSameError):
             paths = as_paths(['a.fa', 'b.fasta', 'c.fa'])
-            BiofileGroup(paths, filetype='fasta')
+            BiofileGroup(paths, filetype=Fasta)
 
     def test_optional_param_are_passed_to_biofile(self, dat):
         with raises(GzipStatusError):
             BiofileGroup(
                     dat['tiny']['fwd_reads'],
-                    filetype='fastq',
+                    filetype=Fastq,
                     gzipped=True)
 
 
