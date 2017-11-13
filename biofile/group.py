@@ -53,19 +53,20 @@ class BiofileGroup(Sized):
 
         # Store paramaters
         self._paths = paths
-        # TODO
-        #self.names = names
         self.filetype = filetype
         self.validated = False
 
         self._biofiles = self._initialize_biofiles(*args, **kwargs)
-        self._prevalidate()
+        self.validate()
+        self.names = [f.name for f in self._biofiles]
 
     def validate(self) -> None:
         """Validation function to be used upon attempted access
 
         It is only called upon the first access attempt
         """
+        self._check_paths_not_none()
+        self._check_extensions_same()
         for biofile in self._biofiles:
             if not biofile.validated:
                 biofile.validate()
@@ -126,13 +127,6 @@ class BiofileGroup(Sized):
         extensions = [f.extension for f in self._biofiles]
         if not all_equal(extensions):
             raise FileExtensionsNotSameError(self._paths)
-        return True
-
-    def _prevalidate(self) -> bool:
-        """Do some basic input validation upon initialization"""
-
-        self._check_paths_not_none()
-        self._check_extensions_same()
         return True
 
 #
@@ -216,4 +210,3 @@ class FileExtensionsNotSameError(BiofileGroupValidationError):
 
     def _err_description(self) -> str:
         return "File extensions are not all equal"
-

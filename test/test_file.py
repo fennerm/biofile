@@ -62,7 +62,7 @@ class TestBiofile(object):
     def test_gzipped_set(self, inst_biofiles):
         assert hasattr(inst_biofiles, 'gzipped')
 
-    def test_empty_input_raises_value_err(self, biofiles):
+    def test_empty_input_raises_err(self, biofiles):
         with raises(TypeError):
             biofiles(Path(''))
 
@@ -79,17 +79,19 @@ class TestBiofile(object):
             Biofile(Path('i_dont_exist.fa')).validate()
 
     def test_empty_files_raises_err(self, dat):
-        bf = Biofile(dat['tiny']['empty_reads'][0])
         with raises(EmptyFileError):
-            bf.validate()
+            Biofile(dat['tiny']['empty_reads'][0])
 
     def test_possibly_empty_prevents_error(self, dat):
         bf = Biofile(dat['tiny']['empty_reads'][0], possibly_empty=True)
         assert bf.validate()
 
-    def test_incorrect_extension_raises_extension_err(self, biofiles, dat):
-        read_path = dat['tiny']['fwd_reads'][0]
-        incorrect_suffix = add_suffix(read_path, '.foobar')
+    def test_incorrect_extension_raises_extension_err(
+            self,
+            gen_tmp,
+            biofiles):
+
+        incorrect_suffix = gen_tmp(empty=False, suffix='.foobar')
 
         if biofiles.extensions != ['ANY']:
             with raises(FileExtensionError):

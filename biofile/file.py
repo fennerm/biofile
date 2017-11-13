@@ -4,14 +4,12 @@ Most common use case will be for pipeline scripts, which benefit from strict
 validation of files between analysis steps.
 
 Alternatively the classes can simply be used to validate groups of files for
-function arguments etc. E.g if `BiofileGroup`[list_of_fasta_files,
-
-type='fasta'] runs without error, you have some confidence that these files can
-be passed to analysis modules for processing without error. However file
-validation is targeted mostly at catching user error - e.g passing a `Sam` file
-rather than a `Bam` file, it does almost no internal checks for file format
-correctness. Consequently, errors introduced to files during analysis will not
-be caught.
+function arguments etc. E.g if `BiofileGroup`[list_of_fasta_files, runs without
+error, you have some confidence that these files can be passed to analysis
+modules for processing without error. However file validation is targeted
+mostly at catching user error - e.g passing a `Sam` file rather than a `Bam`
+file, it does almost no internal checks for file format correctness.
+Consequently, errors introduced to files during analysis will not be caught.
 
 Usage
 -----
@@ -55,18 +53,6 @@ class Biofile():
     Classes of more specific filetypes inherit the majority of their attributes
     and validation methods from it.
 
-    Parameters
-    ----------
-    path
-        File to be stored in the group (need not exist)
-    gzipped, Optional
-        If True, file should be gzipped and have the .gz extension. Detecting
-        that files are gzipped is obviously trivial, this flag is just used to
-        ensure that the output function knows the gzip state. If this flag is
-        unset but the files are gzipped, this indicates that an unintended zip
-        step has occured or vice versa.
-    possibly_empty, Optional
-        If True, empty files will not cause validation errors.
 
     Attributes
     ----------
@@ -82,9 +68,24 @@ class Biofile():
 
     def __init__(
             self,
-            path: PurePath,
+            path: Path,
             gzipped: bool = False,
             possibly_empty: bool = False) -> None:
+        """Initialize
+
+        Parameters
+        ----------
+        path
+            File to be stored in the group (need not exist)
+        gzipped, Optional
+            If True, file should be gzipped and have the .gz extension. Detecting
+            that files are gzipped is obviously trivial, this flag is just used to
+            ensure that the output function knows the gzip state. If this flag is
+            unset but the files are gzipped, this indicates that an unintended zip
+            step has occured or vice versa.
+        possibly_empty, Optional
+            If True, empty files will not cause validation errors.
+        """
 
         # Store paramaters
         self._path = path
@@ -97,7 +98,7 @@ class Biofile():
         # Get the actual file extension
         self.extension = self._get_extension()
 
-        self._prevalidate()
+        self.validate()
 
 
     @property
@@ -124,7 +125,10 @@ class Biofile():
         bool
             True if successful
         """
+        self._check_not_dir()
         self._check_file_not_empty()
+        self._check_gzip()
+        self._check_extension()
         self.validated = True
         return True
 
@@ -160,12 +164,6 @@ class Biofile():
             return ''.join(self._path.suffixes[-2:])
         return self._path.suffix
 
-    def _prevalidate(self) -> None:
-        """Do some basic input validation upon initialization"""
-
-        self._check_not_dir()
-        self._check_gzip()
-        self._check_extension()
 
     def _check_file_not_empty(self)-> None:
         """Check that the file has contents"""
@@ -193,12 +191,11 @@ class Biofile():
                 raise GzipStatusError(self._path)
         else:
             if 'gz' in self.extension:
-                raise GzipStatusError(self.path)
+                raise GzipStatusError(self._path)
         return True
 
     def __eq__(self, other) -> bool:
         """Test for BiofileGroup is equal to another"""
-
         return self.path == other.path
 
 
@@ -290,14 +287,19 @@ class CentrifugeDB(Biofile):
 
     def __init__(self, *args, **kwargs)-> None:
         """Initialize"""
-        super().__init__(*args, **kwargs)
-
         # A CentrifugeDB biofile is in fact a reference to multiple files. We
         # store them here
+        try:
+            path = args[0]
+        except KeyError:
+            path = kwargs['path']
+
         self._idx: List[Path] = []
         for i in range(1, 4):
             suffix = ''.join(['.', str(i), '.cf'])
-            self._idx.append(add_suffix(self._path, suffix))
+            self._idx.append(add_suffix(path, suffix))
+        super().__init__(*args, **kwargs)
+
 
     def _check_file_not_empty(self):
         """Check that the file has contents"""
@@ -412,4 +414,3 @@ class FileExtensionError(BiofileValidationError):
 
     def _err_description(self) -> str:
         return "Unexpected file extension"
-

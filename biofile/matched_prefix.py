@@ -34,16 +34,13 @@ class MatchedPrefixGroup(object):
     def __init__(self, groups: List[BiofileGroup]) -> None:
         self.groups = groups
         self.validated = False
-        self._prevalidate()
-
-    def _prevalidate(self) -> None:
-        """Check that the MatchedPrefixGroup is valid"""
-        self.__check_files_not_same()
-        self.__check_lengths_match()
-        self.__check_same_file_prefix()
+        self.validate()
 
     def validate(self)-> bool:
         """Validate the `BiofileGroup`s"""
+        self.__check_files_not_same()
+        self.__check_lengths_match()
+        self.__check_same_file_prefix()
         if not self.validated:
             for group in self.groups:
                 group.validate()

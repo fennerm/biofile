@@ -31,6 +31,10 @@ def rev_reads(dat):
 def assemblies(dat):
     return BiofileGroup(dat['tiny']['assemblies'], Fasta)
 
+@fixture
+def diff_suffix(dat):
+    return dat['tiny']['assemblies'] + dat['tiny']['fwd_reads']
+
 
 class TestBiofileGroup(object):
 
@@ -59,17 +63,12 @@ class TestBiofileGroup(object):
             assert fa == assemblies[i]
             assert reads == fwd_reads[i]
 
-    def test_length_nonexist_doesnt_raise_error(self):
-        paths = as_paths(['foo.fa', 'bar.fa'])
-        len(BiofileGroup(paths, filetype=Fasta))
-
     def test_equality_operator(self, assemblies, diff_prefix):
         assert assemblies != diff_prefix
 
-    def test_different_extensions_raises_value_err(self):
-        with raises(FileExtensionsNotSameError):
-            paths = as_paths(['a.fa', 'b.fasta', 'c.fa'])
-            BiofileGroup(paths, filetype=Fasta)
+    def test_different_extensions_raises_err(self, diff_suffix):
+        with raises(FileExtensionError):
+            BiofileGroup(diff_suffix, filetype=Fasta)
 
     def test_optional_param_are_passed_to_biofile(self, dat):
         with raises(GzipStatusError):
