@@ -1,5 +1,6 @@
 *.swp
 *.pyc
+*.coverage
 /json/
 /not_mine/
 *.egg-info
