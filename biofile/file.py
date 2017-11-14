@@ -33,9 +33,13 @@ FileGroups are designed to be initialized and then used without editing. Once
 a group has been initialized, it is not recommended to attempt to change the
 files it maps to.
 """
+import os
 from pathlib import (
         Path,
+        PosixPath,
         PurePath,
+        _posix_flavour,
+        _windows_flavour,
         )
 from typing import (
         List,
@@ -46,8 +50,7 @@ from fmbiopy.fmpaths import (
         is_empty,
         )
 
-
-class Biofile(object):
+class Biofile(Path):
     """Superclass for storing and validating bioinformatics files.
 
     Classes of more specific filetypes inherit the majority of their attributes
@@ -65,33 +68,29 @@ class Biofile(object):
     """
     input_type: str = 'ANY'
     extensions: List[str] = ['ANY']
+    _flavour = _windows_flavour if os.name == 'nt' else _posix_flavour
 
     def __init__(
             self,
-            path: Path,
+            *args,
             gzipped: bool = False,
-            possibly_empty: bool = False) -> None:
+            possibly_empty: bool = False,
+            )-> None:
         """Initialize
 
         Parameters
         ----------
-        path
-            File to be stored in the group (need not exist)
         gzipped, Optional
-            If True, file should be gzipped and have the .gz extension. Detecting
-            that files are gzipped is obviously trivial, this flag is just used to
-            ensure that the output function knows the gzip state. If this flag is
-            unset but the files are gzipped, this indicates that an unintended zip
-            step has occured or vice versa.
+            If True, file should be gzipped and have the .gz extension.
+            Detecting that files are gzipped is obviously trivial, this flag is
+            just used to ensure that the output function knows the gzip state.
+            If this flag is unset but the files are gzipped, this indicates
+            that an unintended zip step has occured or vice versa.
         possibly_empty, Optional
             If True, empty files will not cause validation errors.
         """
-
         # Store paramaters
-        self.path = path
-        self.name = self.path.name
         self.gzipped = gzipped
-        self.validated = False
 
         # True if it is acceptable for the files to be empty
         self.possibly_empty = possibly_empty
@@ -100,9 +99,6 @@ class Biofile(object):
         self.extension = self._get_extension()
 
         self.validate()
-
-    def __str__(self)-> str:
-        return str(self.path)
 
     def validate(self) -> bool:
         """Validation function to be used upon attempted access
@@ -118,7 +114,6 @@ class Biofile(object):
         self._check_file_not_empty()
         self._check_gzip()
         self._check_extension()
-        self.validated = True
         return True
 
     def _check_not_dir(self) -> bool:
@@ -134,7 +129,7 @@ class Biofile(object):
         TypeError
             If path is a directory
         """
-        if Path(self.path).is_dir():
+        if self.is_dir():
             raise TypeError('File cannot be a directory')
         return True
 
@@ -148,21 +143,21 @@ class Biofile(object):
             Otherwise just returns the final extension.
         """
         # If the file extension has two parts return the two part suffix
-        two_part_suffix = self.path.suffixes[-2:]
+        two_part_suffix = self.suffixes[-2:]
         joined_suffix = ''.join(two_part_suffix)
 
         if self.gzipped or joined_suffix in self.extensions:
             extension = joined_suffix
         else:
-            extension = self.path.suffix
+            extension = self.suffix
         return extension
 
 
     def _check_file_not_empty(self)-> None:
         """Check that the file has contents"""
         if not self.possibly_empty:
-            if is_empty(self.path):
-                raise EmptyFileError(self.path)
+            if is_empty(self):
+                raise EmptyFileError(self)
 
     def _check_extension(self) -> bool:
         """Check that the file extension matches the accepted extensions
@@ -173,7 +168,7 @@ class Biofile(object):
         if self.extensions != ['ANY']:
             # Extension check is not caps sensitive
             if self.extension not in self.extensions:
-                raise FileExtensionError(self.path)
+                raise FileExtensionError(self)
         return True
 
     def _check_gzip(self) -> bool:
@@ -181,15 +176,11 @@ class Biofile(object):
 
         if self.gzipped:
             if '.gz' not in self.extension:
-                raise GzipStatusError(self.path)
+                raise GzipStatusError(self)
         else:
             if 'gz' in self.extension:
-                raise GzipStatusError(self.path)
+                raise GzipStatusError(self)
         return True
-
-    def __eq__(self, other) -> bool:
-        """Test for BiofileGroup is equal to another"""
-        return self.path == other.path
 
 
 class Fastq(Biofile):
@@ -258,7 +249,7 @@ class Gzipped(Biofile):
         use this method for extension validation.
         """
         if '.gz' not in self.extension.lower():
-            raise FileExtensionError(self.path)
+            raise FileExtensionError(self)
         return True
 
 
@@ -281,15 +272,11 @@ class CentrifugeDB(Biofile):
         """Initialize"""
         # A CentrifugeDB biofile is in fact a reference to multiple files. We
         # store them here
-        try:
-            path = args[0]
-        except KeyError:
-            path = kwargs['path']
 
         self._idx: List[Path] = []
         for i in range(1, 4):
             suffix = ''.join(['.', str(i), '.cf'])
-            self._idx.append(add_suffix(path, suffix))
+            self._idx.append(add_suffix(self, suffix))
         super().__init__(*args, **kwargs)
 
 
@@ -298,7 +285,7 @@ class CentrifugeDB(Biofile):
         if not self.possibly_empty:
             for path in self._idx:
                 if is_empty(path):
-                    raise EmptyFileError(self.path)
+                    raise EmptyFileError(self)
 
 
 class TSV(Biofile):

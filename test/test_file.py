@@ -24,7 +24,7 @@ def instance_of(example_file: Callable[[Type[Biofile], str], Path]):
 
         input_example = example_file(cls, size)
 
-        return cls(input_example)
+        return cls(str(input_example))
     return _make_test_instance
 
 
@@ -56,19 +56,20 @@ class TestBiofile(object):
     def test_name_set(self, inst_biofiles):
         assert hasattr(inst_biofiles, 'name')
 
-    def testpath_set(self, inst_biofiles):
-        assert hasattr(inst_biofiles, 'path')
-
     def test_gzipped_set(self, inst_biofiles):
         assert hasattr(inst_biofiles, 'gzipped')
 
     def test_empty_input_raises_err(self, biofiles):
         with raises(TypeError):
-            biofiles(Path(''))
+            biofiles()
+
+    def test_path_methods(self, inst_biofiles):
+        inst_biofiles.suffix
+        inst_biofiles.is_dir()
 
     def test_undeclared_gzip_raises_gzip_error(self, dat):
         with raises(GzipStatusError):
-            Biofile(dat['tiny']['zipped_fwd_reads'][0]).validate()
+            Biofile(str(dat['tiny']['zipped_fwd_reads'][0]))
 
     def test_list_input_raises_type_error(self, example_file, biofiles):
         with raises(AttributeError):
@@ -76,15 +77,14 @@ class TestBiofile(object):
 
     def test_if_files_dont_exist_raise_err(self):
         with raises(FileNotFoundError):
-            Biofile(Path('i_dont_exist.fa')).validate()
+            Biofile('i_dont_exist.fa')
 
     def test_empty_files_raises_err(self, dat):
         with raises(EmptyFileError):
-            Biofile(dat['tiny']['empty_reads'][0])
+            Biofile(str(dat['tiny']['empty_reads'][0]))
 
     def test_possibly_empty_prevents_error(self, dat):
-        bf = Biofile(dat['tiny']['empty_reads'][0], possibly_empty=True)
-        assert bf.validate()
+        Biofile(str(dat['tiny']['empty_reads'][0]), possibly_empty=True)
 
     def test_incorrect_extension_raises_extension_err(
             self,

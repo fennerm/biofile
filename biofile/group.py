@@ -22,13 +22,6 @@ class BiofileGroup(Sized):
     All parameters except files are passed to `Biofile` to initialize each
     individual file.
 
-    Parameters
-    ----------
-    files
-        The list of files to be stored in the group.
-    filetype
-        The stored filetype
-
     Attributes
     ----------
     gzipped : bool
@@ -50,49 +43,36 @@ class BiofileGroup(Sized):
             *args,
             **kwargs,
             ) -> None:
+        """Initialize
+
+        Parameters
+        ----------
+        files
+            The list of files to be stored in the group.
+        filetype
+            The stored filetype
+        """
 
         # Store paramaters
-        self._paths = paths
+        self.paths = paths
         self.filetype = filetype
-        self.validated = False
 
-        self._biofiles = self._initialize_biofiles(*args, **kwargs)
+        self.biofiles = self._initialize_biofiles(*args, **kwargs)
+        self.names = [f.name for f in self.biofiles]
         self.validate()
-        self.names = [f.name for f in self._biofiles]
 
-    def validate(self) -> None:
+    def validate(self)-> bool:
         """Validation function to be used upon attempted access
 
         It is only called upon the first access attempt
         """
-        self._check_paths_not_none()
+        self._checkpaths_not_none()
         self._check_extensions_same()
-        for biofile in self._biofiles:
-            if not biofile.validated:
-                biofile.validate()
-        self.validated = True
-
-    @property
-    def paths(self) -> Sequence[Path]:
-        """The stored filepaths"""
-        if not self.validated:
-            self.validate()
-        return self._paths
-
-    @property
-    def biofiles(self) -> Sequence[Biofile]:
-        """The group of `Biofile` objects"""
-        if not self.validated:
-            self.validate()
-        return self._biofiles
+        return True
 
     def __getitem__(self, item) -> str:
         """Get a file from the group"""
-
-        if not self.validated:
-            self.validate()
-
-        return self._paths[item]
+        return self.paths[item]
 
     def __eq__(self, other) -> bool:
         """Test for BiofileGroup is equal to another"""
@@ -110,23 +90,23 @@ class BiofileGroup(Sized):
 
     def _initialize_biofiles(self, *args, **kwargs) -> List[Biofile]:
         """Initalize a set of biofiles for the input file list"""
-        return [self.filetype(p, *args, **kwargs) for p in self._paths]
+        return [self.filetype(p, *args, **kwargs) for p in self.paths]
 
     def __len__(self) -> int:
         """Length of file list"""
-        return len(self._paths)
+        return len(self.paths)
 
-    def _check_paths_not_none(self) -> bool:
+    def _checkpaths_not_none(self) -> bool:
         """Check paths not an empty list"""
-        if not self._paths:
+        if not self.paths:
             raise ValueError('Empty paths in BiofileGroup')
         return True
 
     def _check_extensions_same(self) -> bool:
         """Check that the stored file extensions are all the same"""
-        extensions = [f.extension for f in self._biofiles]
+        extensions = [f.extension for f in self.biofiles]
         if not all_equal(extensions):
-            raise FileExtensionsNotSameError(self._paths)
+            raise FileExtensionsNotSameError(self.paths)
         return True
 
 #
@@ -155,7 +135,7 @@ class BiofileGroup(Sized):
 #
 #         # Reverse bowtie2 indices need three extensions removed, the rest
 #         # just need two
-#         path = os.path.basename(self._paths[0])
+#         path = os.path.basename(self.paths[0])
 #         if '.rev.' in path:
 #             return fmpaths.remove_suffix(path, 3)[0]
 #         return fmpaths.remove_suffix(path, 2)[0]
