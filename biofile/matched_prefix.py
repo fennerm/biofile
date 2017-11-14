@@ -6,7 +6,10 @@ from typing import (
         )
 
 from fmbiopy.fmcheck import all_equal
-from fmbiopy.fmpaths import prefix
+from fmbiopy.fmpaths import (
+        as_strs,
+        prefix,
+        )
 
 from biofile.group import (
         BiofileGroup,
@@ -33,35 +36,30 @@ class MatchedPrefixGroup(object):
 
     def __init__(self, groups: List[BiofileGroup]) -> None:
         self.groups = groups
-        self.validated = False
         self.validate()
 
     def validate(self)-> bool:
         """Validate the `BiofileGroup`s"""
-        self.__check_files_not_same()
-        self.__check_lengths_match()
-        self.__check_same_file_prefix()
-        if not self.validated:
-            for group in self.groups:
-                group.validate()
-        self.validated = True
+        self._check_files_not_same()
+        self._check_lengths_match()
+        self._check_same_file_prefix()
         return True
 
-    def __check_files_not_same(self) -> None:
+    def _check_files_not_same(self) -> None:
         """Check that none of the filegroups are the exact same"""
         for i, group1 in enumerate(self.groups):
             for j, group2 in enumerate(self.groups):
                 if i != j and group1 == group2:
                     raise DuplicateFilegroupError(self.groups)
 
-    def __check_lengths_match(self) -> None:
+    def _check_lengths_match(self) -> None:
         group_lengths = [len(g) for g in self.groups]
         if not all_equal(group_lengths):
             raise GroupLengthError(self.groups)
 
-    def __check_same_file_prefix(self) -> None:
+    def _check_same_file_prefix(self) -> None:
         """Check that the stored BiofileGroups all have the same prefixes"""
-        group_paths = [group._paths for group in self.groups]
+        group_paths = [group.paths for group in self.groups]
         prefixes = []
         for paths in group_paths:
             prefixes.append([prefix(path) for path in paths])
@@ -130,7 +128,7 @@ class MatchedPrefixGroupValidationError(BiofileGroupValidationError):
         formatted_filenames = 'Groups:\n'
 
         for group in self.groups:
-            filename_str = ', '.join(as_strs(group._paths))
+            filename_str = ', '.join(as_strs(group.paths))
             formatted_filenames += ''.join(['[', filename_str, ']\n'])
         return formatted_filenames
 
