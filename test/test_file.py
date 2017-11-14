@@ -56,7 +56,7 @@ class TestBiofile(object):
     def test_name_set(self, inst_biofiles):
         assert hasattr(inst_biofiles, 'name')
 
-    def test_path_set(self, inst_biofiles):
+    def testpath_set(self, inst_biofiles):
         assert hasattr(inst_biofiles, 'path')
 
     def test_gzipped_set(self, inst_biofiles):

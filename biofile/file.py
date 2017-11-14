@@ -47,7 +47,7 @@ from fmbiopy.fmpaths import (
         )
 
 
-class Biofile():
+class Biofile(object):
     """Superclass for storing and validating bioinformatics files.
 
     Classes of more specific filetypes inherit the majority of their attributes
@@ -88,7 +88,8 @@ class Biofile():
         """
 
         # Store paramaters
-        self._path = path
+        self.path = path
+        self.name = self.path.name
         self.gzipped = gzipped
         self.validated = False
 
@@ -100,20 +101,8 @@ class Biofile():
 
         self.validate()
 
-
-    @property
-    def path(self) -> Path:
-        """The path to the stored file"""
-        if not self.validated:
-            self.validate()
-        return Path(self._path)
-
-    @property
-    def name(self) -> str:
-        """The basename of the stored file"""
-        if not self.validated:
-            self.validate()
-        return self._path.name
+    def __str__(self)-> str:
+        return str(self.path)
 
     def validate(self) -> bool:
         """Validation function to be used upon attempted access
@@ -145,11 +134,11 @@ class Biofile():
         TypeError
             If path is a directory
         """
-        if Path(self._path).is_dir():
+        if Path(self.path).is_dir():
             raise TypeError('File cannot be a directory')
         return True
 
-    def _get_extension(self) -> str:
+    def _get_extension(self)-> str:
         """Get the file extension
 
         Returns
@@ -158,18 +147,22 @@ class Biofile():
             If gzipped then it returns the two part extension E.g fq.gz.
             Otherwise just returns the final extension.
         """
+        # If the file extension has two parts return the two part suffix
+        two_part_suffix = self.path.suffixes[-2:]
+        joined_suffix = ''.join(two_part_suffix)
 
-        # If gzipped we return the two part extension E.g 'fq.gz'
-        if self.gzipped:
-            return ''.join(self._path.suffixes[-2:])
-        return self._path.suffix
+        if self.gzipped or joined_suffix in self.extensions:
+            extension = joined_suffix
+        else:
+            extension = self.path.suffix
+        return extension
 
 
     def _check_file_not_empty(self)-> None:
         """Check that the file has contents"""
         if not self.possibly_empty:
-            if is_empty(self._path):
-                raise EmptyFileError(self._path)
+            if is_empty(self.path):
+                raise EmptyFileError(self.path)
 
     def _check_extension(self) -> bool:
         """Check that the file extension matches the accepted extensions
@@ -179,8 +172,8 @@ class Biofile():
         """
         if self.extensions != ['ANY']:
             # Extension check is not caps sensitive
-            if self.extension.lower() not in self.extensions:
-                raise FileExtensionError(self._path)
+            if self.extension not in self.extensions:
+                raise FileExtensionError(self.path)
         return True
 
     def _check_gzip(self) -> bool:
@@ -188,10 +181,10 @@ class Biofile():
 
         if self.gzipped:
             if '.gz' not in self.extension:
-                raise GzipStatusError(self._path)
+                raise GzipStatusError(self.path)
         else:
             if 'gz' in self.extension:
-                raise GzipStatusError(self._path)
+                raise GzipStatusError(self.path)
         return True
 
     def __eq__(self, other) -> bool:
@@ -203,17 +196,17 @@ class Fastq(Biofile):
     """Biofile class for holding .fastq files."""
 
     input_type = 'fastq'
-    extensions = ['.fastq', '.fq', '.fastq.gz', '.fq.gz']
+    extensions = ['.fastq', '.fq']
 
 
 class FwdFastq(Fastq):
     """Biofile class for holding forward pairs in paired .fastqs"""
-    pass
+    extensions = ['.R1.fastq', '.R1.fq', '.1.fastq', '.1.fq']
 
 
 class RevFastq(Fastq):
     """Biofile class for holding reverse pairs in paired .fastqs"""
-    pass
+    extensions = ['.R2.fastq', '.R2.fq', '.2.fastq', '.2.fq']
 
 
 class UnpairedFastq(Fastq):
@@ -242,7 +235,6 @@ class Sam(Biofile):
 
 class Bam(Biofile):
     """Biofile class for holding .bam files"""
-
     input_type = 'bam'
     extensions = ['.bam']
 
@@ -266,7 +258,7 @@ class Gzipped(Biofile):
         use this method for extension validation.
         """
         if '.gz' not in self.extension.lower():
-            raise FileExtensionError(self._path)
+            raise FileExtensionError(self.path)
         return True
 
 
@@ -306,7 +298,7 @@ class CentrifugeDB(Biofile):
         if not self.possibly_empty:
             for path in self._idx:
                 if is_empty(path):
-                    raise EmptyFileError(self._path)
+                    raise EmptyFileError(self.path)
 
 
 class TSV(Biofile):
