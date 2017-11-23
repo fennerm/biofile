@@ -1,23 +1,22 @@
 """Test suite for biofile.file"""
-from pathlib import Path
 
 from typing import (
         Callable,
         Type,
         )
 
+from plumbum import LocalPath
 from pytest import (
         fixture,
         raises,
         )
 
 from fmbiopy.fmclass import list_classes
-from fmbiopy.fmpaths import (add_suffix)
 
 from biofile.file import *
 
 @fixture(scope='module')
-def instance_of(example_file: Callable[[Type[Biofile], str], Path]):
+def instance_of(example_file: Callable[[Type[Biofile], str], LocalPath]):
     def _make_test_instance(
             cls: Type[Biofile],
             size: str)-> Biofile:

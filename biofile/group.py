@@ -1,10 +1,5 @@
 """BiofileGroup classes"""
 from collections.abc import Sized
-from pathlib import (
-        Path,
-        PurePath,
-        )
-
 from typing import (
         List,
         Sequence,
@@ -12,6 +7,7 @@ from typing import (
         )
 
 from fmbiopy.fmcheck import all_equal
+from plumbum import LocalPath
 
 from biofile.file import Biofile
 
@@ -38,7 +34,7 @@ class BiofileGroup(Sized):
 
     def __init__(
             self,
-            paths: Sequence[Path],
+            paths: Sequence[LocalPath],
             filetype: Type[Biofile],
             *args,
             **kwargs,
@@ -176,7 +172,7 @@ class BiofileGroupValidationError(Exception):
     msg
         The formatted error message
     """
-    def __init__(self, names: Sequence[PurePath] = None) -> None:
+    def __init__(self, names: Sequence[LocalPath] = None) -> None:
         self.names = names
         super().__init__()
 

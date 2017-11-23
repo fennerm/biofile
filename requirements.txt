@@ -1,5 +1,5 @@
 plumbum==1.6.3
-pytest==3.2.5
 setuptools==28.8.0
+pytest==3.2.5
 pypandoc==1.4
 typing==3.6.2

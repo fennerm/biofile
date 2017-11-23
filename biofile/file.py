@@ -34,23 +34,19 @@ a group has been initialized, it is not recommended to attempt to change the
 files it maps to.
 """
 import os
-from pathlib import (
-        Path,
-        PosixPath,
-        PurePath,
-        _posix_flavour,
-        _windows_flavour,
-        )
 from typing import (
         List,
+        Union,
         )
 
-from fmbiopy.fmpaths import (
-        add_suffix,
-        is_empty,
+from plumbum import (
+        local,
+        LocalPath,
         )
 
-class Biofile(Path):
+from fmbiopy.fmpaths import is_empty
+
+class Biofile(LocalPath):
     """Superclass for storing and validating bioinformatics files.
 
     Classes of more specific filetypes inherit the majority of their attributes
@@ -68,12 +64,16 @@ class Biofile(Path):
     """
     input_type: str = 'ANY'
     extensions: List[str] = ['ANY']
-    _flavour = _windows_flavour if os.name == 'nt' else _posix_flavour
+
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls, *args)
+
 
     def __init__(
             self,
             *args,
             gzipped: bool = False,
+            determine_gzip: bool = False,
             possibly_empty: bool = False,
             )-> None:
         """Initialize
@@ -88,9 +88,16 @@ class Biofile(Path):
             that an unintended zip step has occured or vice versa.
         possibly_empty, Optional
             If True, empty files will not cause validation errors.
+        determine_gzip, Optional
+            If True, the gzip status will be determined upon initialization and
+            no gzip exceptions will be raised.
         """
+        super().__init__()
         # Store paramaters
-        self.gzipped = gzipped
+        if determine_gzip:
+            self.gzipped = self.suffix == '.gz'
+        else:
+            self.gzipped = gzipped
 
         # True if it is acceptable for the files to be empty
         self.possibly_empty = possibly_empty
@@ -273,10 +280,10 @@ class CentrifugeDB(Biofile):
         # A CentrifugeDB biofile is in fact a reference to multiple files. We
         # store them here
 
-        self._idx: List[Path] = []
+        self._idx: List[LocalPath] = []
         for i in range(1, 4):
             suffix = ''.join(['.', str(i), '.cf'])
-            self._idx.append(add_suffix(self, suffix))
+            self._idx.append(self.with_suffix(suffix, 0))
         super().__init__(*args, **kwargs)
 
 
@@ -355,7 +362,7 @@ class BiofileValidationError(Exception):
     msg
         The formatted error message
     """
-    def __init__(self, name: PurePath = None)-> None:
+    def __init__(self, name: LocalPath = None)-> None:
         self.name = name
         self.msg = self._construct_msg()
         super().__init__(self.msg)
