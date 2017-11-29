@@ -5,7 +5,7 @@ from typing import (
         Sequence,
         )
 
-from fmbiopy.fmcheck import all_equal
+from fmbiopy.fmlist import all_equal
 from fmbiopy.fmpaths import (
         as_strs,
         prefix,

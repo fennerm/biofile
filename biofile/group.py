@@ -6,7 +6,7 @@ from typing import (
         Type,
         )
 
-from fmbiopy.fmcheck import all_equal
+from fmbiopy.fmlist import all_equal
 from plumbum import LocalPath
 
 from biofile.file import Biofile

@@ -64,7 +64,6 @@ class Biofile(LocalPath):
     """
     input_type: str = 'ANY'
     extensions: List[str] = ['ANY']
-    _flavour = _windows_flavour if os.name == 'nt' else _posix_flavour
 
     def __new__(cls, *args):
         return super().__new__(cls, *args)
