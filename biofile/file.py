@@ -62,12 +62,11 @@ class Biofile(LocalPath):
     gzipped : bool
         Same as parameter
     """
-    input_type: str = 'ANY'
-    extensions: List[str] = ['ANY']
+    input_type = 'ANY'
+    extensions = ['ANY']
 
-    def __new__(cls, *args):
+    def __new__(cls, *args, **kwargs):
         return super().__new__(cls, *args)
-
 
     def __init__(
             self,
