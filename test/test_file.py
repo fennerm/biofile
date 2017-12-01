@@ -85,6 +85,9 @@ class TestBiofile(object):
     def test_possibly_empty_prevents_error(self, dat):
         Biofile(str(dat['tiny']['empty_reads'][0]), possibly_empty=True)
 
+    def test_determine_gzip(self, dat):
+        Fastq(dat['tiny']['zipped_fwd_reads'][0], determine_gzip=True)
+
     def test_incorrect_extension_raises_extension_err(
             self,
             gen_tmp,

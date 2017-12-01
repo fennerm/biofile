@@ -69,25 +69,21 @@ class Biofile(LocalPath):
         return super().__new__(cls, *args)
 
     def __init__(
-            self,
-            *args,
-            gzipped: bool = False,
-            determine_gzip: bool = False,
-            possibly_empty: bool = False,
-            )-> None:
+            self, *args, gzipped = False, determine_gzip = False,
+            possibly_empty = False):
         """Initialize
 
         Parameters
         ----------
-        gzipped, Optional
+        gzipped: bool, Optional
             If True, file should be gzipped and have the .gz extension.
             Detecting that files are gzipped is obviously trivial, this flag is
             just used to ensure that the output function knows the gzip state.
             If this flag is unset but the files are gzipped, this indicates
             that an unintended zip step has occured or vice versa.
-        possibly_empty, Optional
+        possibly_empty: bool, Optional
             If True, empty files will not cause validation errors.
-        determine_gzip, Optional
+        determine_gzip: bool, Optional
             If True, the gzip status will be determined upon initialization and
             no gzip exceptions will be raised.
         """
@@ -172,8 +168,11 @@ class Biofile(LocalPath):
         use this method for extension validation.
         """
         if self.extensions != ['ANY']:
-            # Extension check is not caps sensitive
-            if self.extension not in self.extensions:
+            if self.gzipped:
+                ext = self.suffixes[-2]
+            else:
+                ext = self.extension
+            if ext not in self.extensions:
                 raise FileExtensionError(self)
         return True
 
